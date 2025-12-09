@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 
 function fmtDate(val) {
-  if (!val) return '';
+  if (!val) return "";
   try {
     const d = new Date(val);
     if (isNaN(d)) return String(val);
     return d.toLocaleDateString();
-  } catch (e) {
+  } catch {
     return String(val);
   }
 }
@@ -14,87 +14,176 @@ function fmtDate(val) {
 export default function TransactionsTable({ data = [], loading }) {
   const [expanded, setExpanded] = useState(null);
 
-  if (loading) return <div>Loading...</div>;
-  if (!Array.isArray(data) || data.length === 0) return <div>No results</div>;
+  if (loading) return <div style={{ padding: 12 }}>Loading transactions...</div>;
+  if (!data.length) return <div style={{ padding: 12 }}>No transactions found</div>;
 
   return (
-    <div>
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 12 }}>
+    <div
+      style={{
+        overflowX: "auto",
+        borderRadius: 10,
+        border: "1px solid #e5e7eb",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+        marginTop: 16,
+      }}
+    >
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "separate",
+          borderSpacing: 0,
+          fontFamily: "Inter, sans-serif",
+        }}
+      >
+        {/* HEADER */}
         <thead>
-          <tr>
-            <th>Date</th>
-            <th>Customer ID</th>
-            <th>Customer</th>
-            <th>Phone</th>
-            <th>Product</th>
-            <th>Category</th>
-            <th>Qty</th>
-            <th>Final Amount</th>
-            <th>Details</th>
+          <tr
+            style={{
+              background: "#f8fafc",
+              textAlign: "left",
+              fontWeight: 600,
+              borderBottom: "2px solid #e5e7eb",
+              position: "sticky",
+              top: 0,
+              zIndex: 1,
+            }}
+          >
+            <th style={thStyle}>Date</th>
+            <th style={thStyle}>Customer ID</th>
+            <th style={thStyle}>Customer</th>
+            <th style={thStyle}>Phone</th>
+            <th style={thStyle}>Product</th>
+            <th style={thStyle}>Category</th>
+            <th style={thStyle}>Qty</th>
+            <th style={thStyle}>Final Amount</th>
+            <th style={thStyle}>More</th>
           </tr>
         </thead>
+
+        {/* BODY */}
         <tbody>
-          {data.map((r, i) => (
-            <React.Fragment key={r._id || i}>
-              <tr style={{ borderTop: '1px solid #eee' }}>
-                <td>{fmtDate(r.date)}</td>
-                <td>{r.customerId ?? r['Customer ID'] ?? ''}</td>
-                <td>{r.customerName ?? r['Customer Name'] ?? ''}</td>
-                <td>{r.phoneNumber ?? r['Phone Number'] ?? ''}</td>
-                <td>{r.productName ?? r['Product Name'] ?? ''}</td>
-                <td>{r.productCategory ?? r['Product Category'] ?? ''}</td>
-                <td>{r.quantity ?? r['Quantity'] ?? ''}</td>
-                <td>{r.finalAmount ?? r['Final Amount'] ?? ''}</td>
-                <td>
-                  <button onClick={() => setExpanded(expanded === i ? null : i)}>
-                    {expanded === i ? 'Hide' : 'Show'}
-                  </button>
-                </td>
-              </tr>
+          {data.map((r, i) => {
+            const isOpen = expanded === i;
+            return (
+              <React.Fragment key={r._id || i}>
 
-              {expanded === i && (
-                <tr>
-                  <td colSpan={9} style={{ background: '#fafafa', padding: 12 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                      {/* Customer fields */}
-                      <div><strong>Customer ID:</strong> {r.customerId ?? r['Customer ID']}</div>
-                      <div><strong>Customer Name:</strong> {r.customerName ?? r['Customer Name']}</div>
-                      <div><strong>Phone Number:</strong> {r.phoneNumber ?? r['Phone Number']}</div>
-                      <div><strong>Gender:</strong> {r.gender ?? r['Gender']}</div>
-                      <div><strong>Age:</strong> {r.age ?? r['Age']}</div>
-                      <div><strong>Customer Region:</strong> {r.customerRegion ?? r['Customer Region']}</div>
-                      <div><strong>Customer Type:</strong> {r.customerType ?? r['Customer Type']}</div>
+                {/* MAIN ROW */}
+                <tr
+                  style={{
+                    background: i % 2 === 0 ? "#ffffff" : "#f9fafb",
+                    transition: "0.2s",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#eef6ff")}
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background =
+                      i % 2 === 0 ? "#ffffff" : "#f9fafb")
+                  }
+                >
+                  <td style={tdStyle}>{fmtDate(r.date)}</td>
+                  <td style={tdStyle}>{r.customerId ?? r["Customer ID"]}</td>
+                  <td style={tdStyle}>{r.customerName ?? r["Customer Name"]}</td>
+                  <td style={tdStyle}>{r.phoneNumber ?? r["Phone Number"]}</td>
+                  <td style={tdStyle}>{r.productName ?? r["Product Name"]}</td>
+                  <td style={tdStyle}>{r.productCategory ?? r["Product Category"]}</td>
+                  <td style={tdStyle}>{r.quantity ?? r["Quantity"]}</td>
+                  <td style={tdStyle}>₹ {r.finalAmount ?? r["Final Amount"]}</td>
 
-                      {/* Product fields */}
-                      <div><strong>Product ID:</strong> {r.productId ?? r['Product ID']}</div>
-                      <div><strong>Brand:</strong> {r.brand ?? r['Brand']}</div>
-                      <div><strong>Product Category:</strong> {r.productCategory ?? r['Product Category']}</div>
-                      <div><strong>Tags:</strong> {(r.tags && r.tags.join) ? r.tags.join(', ') : (r['Tags'] ?? '')}</div>
-
-                      {/* Sales fields */}
-                      <div><strong>Quantity:</strong> {r.quantity ?? r['Quantity']}</div>
-                      <div><strong>Price per Unit:</strong> {r.pricePerUnit ?? r['Price per Unit']}</div>
-                      <div><strong>Discount %:</strong> {r.discountPercentage ?? r['Discount Percentage']}</div>
-                      <div><strong>Total Amount:</strong> {r.totalAmount ?? r['Total Amount']}</div>
-                      <div><strong>Final Amount:</strong> {r.finalAmount ?? r['Final Amount']}</div>
-
-                      {/* Operational fields */}
-                      <div><strong>Date:</strong> {fmtDate(r.date ?? r['Date'])}</div>
-                      <div><strong>Payment Method:</strong> {r.paymentMethod ?? r['Payment Method']}</div>
-                      <div><strong>Order Status:</strong> {r.orderStatus ?? r['Order Status']}</div>
-                      <div><strong>Delivery Type:</strong> {r.deliveryType ?? r['Delivery Type']}</div>
-                      <div><strong>Store ID:</strong> {r.storeId ?? r['Store ID']}</div>
-                      <div><strong>Store Location:</strong> {r.storeLocation ?? r['Store Location']}</div>
-                      <div><strong>Salesperson ID:</strong> {r.salespersonId ?? r['Salesperson ID']}</div>
-                      <div><strong>Employee Name:</strong> {r.employeeName ?? r['Employee Name']}</div>
-                    </div>
+                  <td style={tdStyle}>
+                    <button
+                      onClick={() => setExpanded(isOpen ? null : i)}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 6,
+                        border: "1px solid #cfcfcf",
+                        background: isOpen ? "#dbeafe" : "#f8f9fa",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {isOpen ? "Hide" : "Show"}
+                    </button>
                   </td>
                 </tr>
-              )}
-            </React.Fragment>
-          ))}
+
+                {/* EXPANDED SECTION */}
+                {isOpen && (
+                  <tr>
+                    <td colSpan={9} style={{ padding: 16, background: "#f8fafc" }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                          gap: 10,
+                        }}
+                      >
+                        {renderDetail("Customer ID", r.customerId ?? r["Customer ID"])}
+                        {renderDetail("Customer Name", r.customerName ?? r["Customer Name"])}
+                        {renderDetail("Phone Number", r.phoneNumber ?? r["Phone Number"])}
+                        {renderDetail("Gender", r.gender ?? r["Gender"])}
+                        {renderDetail("Age", r.age ?? r["Age"])}
+                        {renderDetail("Customer Region", r.customerRegion ?? r["Customer Region"])}
+                        {renderDetail("Customer Type", r.customerType ?? r["Customer Type"])}
+
+                        {renderDetail("Product ID", r.productId ?? r["Product ID"])}
+                        {renderDetail("Brand", r.brand ?? r["Brand"])}
+                        {renderDetail("Category", r.productCategory ?? r["Product Category"])}
+                        {renderDetail("Tags",
+                          Array.isArray(r.tags)
+                            ? r.tags.join(", ")
+                            : r["Tags"] ?? ""
+                        )}
+
+                        {renderDetail("Quantity", r.quantity ?? r["Quantity"])}
+                        {renderDetail("Price per Unit", r.pricePerUnit ?? r["Price per Unit"])}
+                        {renderDetail("Discount %", r.discountPercentage ?? r["Discount Percentage"])}
+                        {renderDetail("Total Amount", r.totalAmount ?? r["Total Amount"])}
+                        {renderDetail("Final Amount", r.finalAmount ?? r["Final Amount"])}
+
+                        {renderDetail("Date", fmtDate(r.date ?? r["Date"]))}
+                        {renderDetail("Payment Method", r.paymentMethod ?? r["Payment Method"])}
+                        {renderDetail("Order Status", r.orderStatus ?? r["Order Status"])}
+                        {renderDetail("Delivery Type", r.deliveryType ?? r["Delivery Type"])}
+                        {renderDetail("Store ID", r.storeId ?? r["Store ID"])}
+                        {renderDetail("Store Location", r.storeLocation ?? r["Store Location"])}
+                        {renderDetail("Salesperson ID", r.salespersonId ?? r["Salesperson ID"])}
+                        {renderDetail("Employee Name", r.employeeName ?? r["Employee Name"])}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+              </React.Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
 }
+
+// Small helper for expanded fields
+function renderDetail(label, value) {
+  return (
+    <div style={{ fontSize: 14 }}>
+      <strong style={{ color: "#1e293b" }}>{label}:</strong>{" "}
+      <span style={{ color: "#475569" }}>{value}</span>
+    </div>
+  );
+}
+
+
+// Shared styles
+const thStyle = {
+  padding: "12px 14px",
+  fontSize: 14,
+  color: "#1e293b",
+  borderBottom: "1px solid #e2e8f0",
+};
+
+const tdStyle = {
+  padding: "12px 14px",
+  fontSize: 14,
+  color: "#334155",
+  borderBottom: "1px solid #f1f5f9",
+};

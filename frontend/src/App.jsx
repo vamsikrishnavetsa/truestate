@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import api from './services/api'; // your axios wrapper (getSales)
+import api from './services/api';
 import SearchBar from './components/SearchBar';
 import FilterPanel from './components/FilterPanel';
 import Pagination from './components/Pagination';
@@ -17,23 +17,25 @@ function useDebounced(value, delay = 350) {
 }
 
 export default function App() {
-  // global UI state
-  const [activeTab, setActiveTab] = useState('sales'); // 'sales' | 'customers' | 'products' | 'operational'
+  const [activeTab, setActiveTab] = useState('sales');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState('Date');
   const [sortOrder, setSortOrder] = useState(-1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounced(search, 300);
-  const [filters, setFilters] = useState({}); // friendly keys: customerRegion, productCategory, tags, dateRange, ageRange, paymentMethod, gender
+  const [filters, setFilters] = useState({});
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState({ results: [], total: 0, page: 1, pageSize: 10 });
 
-  // Build fetch params once (memoize)
-  const fetchParams = useMemo(() => ({ page, pageSize, sortBy, sortOrder, search: debouncedSearch, filters }), [page, pageSize, sortBy, sortOrder, debouncedSearch, filters]);
+  const [filtersOpen, setFiltersOpen] = useState(false); // 🔥 NEW: toggle filters panel
+
+  const fetchParams = useMemo(
+    () => ({ page, pageSize, sortBy, sortOrder, search: debouncedSearch, filters }),
+    [page, pageSize, sortBy, sortOrder, debouncedSearch, filters]
+  );
 
   useEffect(() => {
-    // whenever key state changes, fetch page 1 (except page change)
     setPage(1);
   }, [pageSize, sortBy, sortOrder, debouncedSearch, filters]);
 
@@ -42,7 +44,6 @@ export default function App() {
     async function load() {
       setLoading(true);
       try {
-        // only sales API built in backend currently; for customers/products, we'll request sales and aggregate client-side
         const res = await api.getSales(fetchParams);
         if (!mounted) return;
         setData(res);
@@ -53,19 +54,16 @@ export default function App() {
       }
     }
     load();
-    return () => { mounted = false; };
+    return () => { mounted = false };
   }, [fetchParams]);
 
-  // Derived small summaries for Customers / Products views
-  // We can also create backend endpoints for aggregated customers/products if desired (recommended for large dataset)
-  // For now we generate client-friendly list from current page results.
   const customerRows = data.results.map(r => ({
     customerId: r.customerId ?? r['Customer ID'],
     customerName: r.customerName ?? r['Customer Name'],
     phoneNumber: r.phoneNumber ?? r['Phone Number'],
     region: r.customerRegion ?? r['Customer Region'],
     type: r.customerType ?? r['Customer Type'],
-    totalAmount: r.totalAmount ?? r['Total Amount'],
+    totalAmount: r.totalAmount ?? r['Total Amount']
   }));
 
   const productRows = data.results.map(r => ({
@@ -73,74 +71,185 @@ export default function App() {
     productName: r.productName ?? r['Product Name'],
     brand: r.brand ?? r['Brand'],
     category: r.productCategory ?? r['Product Category'],
-    tags: r.tags ?? (r['Tags'] ? String(r['Tags']).split(',').map(x=>x.trim()) : []),
+    tags: r.tags ?? (r['Tags'] ? String(r['Tags']).split(',').map(x => x.trim()) : []),
     quantity: r.quantity ?? r['Quantity']
   }));
 
   return (
-    <div style={{ padding: 18 }}>
-      <h1>Retail Sales Dashboard</h1>
+    <div
+      style={{
+        padding: 22,
+        maxWidth: 1280,
+        margin: "0 auto",
+        fontFamily: "Inter, sans-serif"
+      }}
+    >
 
-      <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+      {/* HEADER */}
+      <h1
+        style={{
+          marginBottom: 20,
+          fontSize: 30,
+          fontWeight: 700,
+          color: "#1a1a1a",
+        }}
+      >
+        Retail Sales Dashboard
+      </h1>
+
+      {/* TOP SECTION */}
+      <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
+
         <div style={{ flex: 1 }}>
           <SearchBar value={search} onChange={setSearch} />
         </div>
 
-        <div style={{ width: 320 }}>
-          <FilterPanel filters={filters} onChange={(f) => { setFilters(f || {}); setPage(1); }} />
-        </div>
+        {/* FILTER BUTTON */}
+        <button
+          onClick={() => setFiltersOpen(!filtersOpen)}
+          style={{
+            background: filtersOpen ? "#0057ff" : "#f0f0f0",
+            color: filtersOpen ? "white" : "#333",
+            border: "none",
+            padding: "10px 16px",
+            borderRadius: 8,
+            cursor: "pointer",
+            fontWeight: 600,
+            transition: "0.3s",
+            boxShadow: filtersOpen ? "0 4px 12px rgba(0,0,0,0.2)" : "none"
+          }}
+        >
+          {filtersOpen ? "Close Filters" : "Filters"}
+        </button>
+
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <div>
-          <label>Sort:</label>
-          <select value={sortBy} onChange={(e)=>setSortBy(e.target.value)} style={{ marginLeft: 8 }}>
+      {/* SLIDE-IN FILTER PANEL */}
+      <div
+        style={{
+          maxHeight: filtersOpen ? 480 : 0,
+          overflow: 'hidden',
+          transition: "max-height 0.4s ease",
+          marginBottom: 16,
+          borderRadius: 10,
+          background: "#fafafa",
+          border: filtersOpen ? "1px solid #dedede" : "none",
+          padding: filtersOpen ? 16 : "0 16px",
+          boxShadow: filtersOpen ? "0 4px 12px rgba(0,0,0,0.08)" : "none"
+        }}
+      >
+        <FilterPanel
+          filters={filters}
+          onChange={(f) => { setFilters(f || {}); setPage(1); }}
+        />
+      </div>
+
+      {/* SORT + TABS */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 14,
+          alignItems: "center",
+          position: "sticky",
+          top: 0,
+          background: "white",
+          padding: "10px 0",
+          zIndex: 20
+        }}
+      >
+
+        {/* SORTING SECTION */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontWeight: 600 }}>Sort by:</span>
+
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 8,
+              border: "1px solid #ccc",
+              cursor: "pointer"
+            }}
+          >
             <option value="Date">Date (Newest)</option>
             <option value="Quantity">Quantity</option>
             <option value="Customer Name">Customer Name (A–Z)</option>
             <option value="Final Amount">Final Amount</option>
           </select>
-          <button onClick={()=>setSortOrder(sortOrder === -1 ? 1 : -1)} style={{ marginLeft: 8 }}>{sortOrder === -1 ? 'Desc' : 'Asc'}</button>
+
+          <button
+            onClick={() => setSortOrder(sortOrder === -1 ? 1 : -1)}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 8,
+              background: "#0066ff",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: 500
+            }}
+          >
+            {sortOrder === -1 ? "↓ Desc" : "↑ Asc"}
+          </button>
         </div>
 
-        <div>
-          <button onClick={()=>setActiveTab('sales')} style={{ fontWeight: activeTab === 'sales' ? 'bold' : 'normal' }}>Sales</button>
-          <button onClick={()=>setActiveTab('customers')} style={{ fontWeight: activeTab === 'customers' ? 'bold' : 'normal', marginLeft: 8 }}>Customers</button>
-          <button onClick={()=>setActiveTab('products')} style={{ fontWeight: activeTab === 'products' ? 'bold' : 'normal', marginLeft: 8 }}>Products</button>
-          <button onClick={()=>setActiveTab('operational')} style={{ fontWeight: activeTab === 'operational' ? 'bold' : 'normal', marginLeft: 8 }}>Operational</button>
+        {/* TABS */}
+        <div style={{ display: "flex", gap: 10 }}>
+          {["sales", "customers", "products", "operational"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 8,
+                border: "1px solid #ccc",
+                background: activeTab === tab ? "#e8f0ff" : "#f7f7f7",
+                fontWeight: activeTab === tab ? 700 : 500,
+                cursor: "pointer",
+                transition: "0.25s"
+              }}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
         </div>
+
       </div>
 
-      {/* Page info */}
-      <div style={{ marginBottom: 6 }}>
-        Showing {data.results.length} / {data.total}
+      {/* COUNT */}
+      <div style={{ marginBottom: 12, color: "#666" }}>
+        Showing <b>{data.results.length}</b> of <b>{data.total}</b> records
       </div>
 
-      {/* main area: show tab content */}
-      <div>
-        {activeTab === 'sales' && <TransactionsTable data={data.results} loading={loading} />}
-
-        {activeTab === 'customers' && <CustomersTable data={customerRows} loading={loading} />}
-
-        {activeTab === 'products' && <ProductsTable data={productRows} loading={loading} />}
-
-        {activeTab === 'operational' && (
-          <div>
-            {/* Reuse TransactionsTable for operational, or show a lightweight table */}
-            <TransactionsTable data={data.results} loading={loading} />
-          </div>
-        )}
+      {/* MAIN TABLE CARD */}
+      <div
+        style={{
+          background: "white",
+          padding: 20,
+          borderRadius: 12,
+          border: "1px solid #e2e2e2",
+          boxShadow: "0 8px 18px rgba(0,0,0,0.05)"
+        }}
+      >
+        {activeTab === "sales" && <TransactionsTable data={data.results} loading={loading} />}
+        {activeTab === "customers" && <CustomersTable data={customerRows} loading={loading} />}
+        {activeTab === "products" && <ProductsTable data={productRows} loading={loading} />}
+        {activeTab === "operational" && <TransactionsTable data={data.results} loading={loading} />}
       </div>
 
-      <div style={{ marginTop: 12 }}>
+      {/* PAGINATION */}
+      <div style={{ marginTop: 18 }}>
         <Pagination
           page={data.page || page}
           pageSize={data.pageSize || pageSize}
           total={data.total || 0}
-          onPageChange={(p) => { setPage(p); }}
-          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+          onPageChange={(p) => setPage(p)}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
         />
       </div>
+
     </div>
   );
 }

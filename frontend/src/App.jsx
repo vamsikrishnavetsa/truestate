@@ -28,7 +28,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState({ results: [], total: 0, page: 1, pageSize: 10 });
 
-  const [filtersOpen, setFiltersOpen] = useState(false); // 🔥 NEW: toggle filters panel
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [liveFilters, setLiveFilters] = useState(false); // NEW: whether FilterPanel pushes changes live
 
   const fetchParams = useMemo(
     () => ({ page, pageSize, sortBy, sortOrder, search: debouncedSearch, filters }),
@@ -84,7 +85,6 @@ export default function App() {
         fontFamily: "Inter, sans-serif"
       }}
     >
-
       {/* HEADER */}
       <h1
         style={{
@@ -99,29 +99,39 @@ export default function App() {
 
       {/* TOP SECTION */}
       <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
-
         <div style={{ flex: 1 }}>
           <SearchBar value={search} onChange={setSearch} />
         </div>
 
-        {/* FILTER BUTTON */}
-        <button
-          onClick={() => setFiltersOpen(!filtersOpen)}
-          style={{
-            background: filtersOpen ? "#0057ff" : "#f0f0f0",
-            color: filtersOpen ? "white" : "#333",
-            border: "none",
-            padding: "10px 16px",
-            borderRadius: 8,
-            cursor: "pointer",
-            fontWeight: 600,
-            transition: "0.3s",
-            boxShadow: filtersOpen ? "0 4px 12px rgba(0,0,0,0.2)" : "none"
-          }}
-        >
-          {filtersOpen ? "Close Filters" : "Filters"}
-        </button>
+        {/* FILTER BUTTON + LIVE TOGGLE */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => setFiltersOpen(!filtersOpen)}
+            style={{
+              background: filtersOpen ? "#0057ff" : "#f0f0f0",
+              color: filtersOpen ? "white" : "#333",
+              border: "none",
+              padding: "10px 16px",
+              borderRadius: 8,
+              cursor: "pointer",
+              fontWeight: 600,
+              transition: "0.3s",
+              boxShadow: filtersOpen ? "0 4px 12px rgba(0,0,0,0.2)" : "none"
+            }}
+          >
+            {filtersOpen ? "Close Filters" : "Filters"}
+          </button>
 
+          {/* Live toggle */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14 }}>
+            <input
+              type="checkbox"
+              checked={liveFilters}
+              onChange={(e) => setLiveFilters(e.target.checked)}
+            />
+            <span style={{ color: '#444' }}>Live</span>
+          </label>
+        </div>
       </div>
 
       {/* SLIDE-IN FILTER PANEL */}
@@ -140,7 +150,12 @@ export default function App() {
       >
         <FilterPanel
           filters={filters}
-          onChange={(f) => { setFilters(f || {}); setPage(1); }}
+          live={liveFilters} // pass the live flag
+          onChange={(f) => {
+            // FilterPanel will call this either on Apply (live=false) or on each change (live=true)
+            setFilters(f || {});
+            setPage(1);
+          }}
         />
       </div>
 
@@ -158,7 +173,6 @@ export default function App() {
           zIndex: 20
         }}
       >
-
         {/* SORTING SECTION */}
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontWeight: 600 }}>Sort by:</span>
@@ -215,7 +229,6 @@ export default function App() {
             </button>
           ))}
         </div>
-
       </div>
 
       {/* COUNT */}
@@ -249,7 +262,6 @@ export default function App() {
           onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
         />
       </div>
-
     </div>
   );
 }
